@@ -8,9 +8,10 @@
 
 import Foundation
 
-public typealias ASSManager = AnonymousSimpleStatsManager
+public typealias AnonymousManager = AnonymousSimpleStatsManager
 
 /// Anonymous Simple Stats Manager.
+
 public class AnonymousSimpleStatsManager {
 
     // MARK: - Public Properties
