@@ -16,7 +16,7 @@ Pod::Spec.new do |spec|
   #
 
   spec.name         = "AnonymousSimpleStats"
-  spec.version      = "0.0.1"
+  spec.version      = "0.1.1"
   spec.summary      = "Anonymous Simple Stats is as anonymous and lightweight data traffic manager."
 
   # This description is used to generate tags and improve search results.
