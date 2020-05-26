@@ -51,7 +51,7 @@ Pod::Spec.new do |spec|
   #  profile URL.
   #
 
-  spec.author             = { "Clément Picot" => "clement@clewig.fr" }
+  spec.author             = { "Clewig" => "clement@clewig.fr" }
   # spec.social_media_url   = "https://twitter.com/clewigfr"
 
   # ――― Platform Specifics ――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
