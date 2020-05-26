@@ -13,8 +13,6 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        if let page = UUID(uuidString: "4e23d119-b282-4170-a820-928cd097bf36") {
-            AnonymousSimpleStatsManager.shared.logScreen(page: page)
-        }
+        AnonymousSimpleStatsManager.shared.logScreen(pageId: "4e23d119-b282-4170-a820-928cd097bf36")
     }
 }

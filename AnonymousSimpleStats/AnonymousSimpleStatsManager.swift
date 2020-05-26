@@ -42,8 +42,11 @@ public class AnonymousSimpleStatsManager {
     /// Log screen.
     ///
     /// - Parameters:
-    ///     - page: page id
-    public func logScreen(page: UUID) {
+    ///     - page: page id String
+    public func logScreen(pageId: String) {
+        guard let page = UUID(uuidString: pageId)
+            else { return }
+
         if verbose {
             print("AnonymousSimpleStatsManager: log screen")
         }
