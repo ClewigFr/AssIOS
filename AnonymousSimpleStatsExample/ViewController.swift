@@ -14,5 +14,6 @@ class ViewController: UIViewController {
         super.viewDidLoad()
 
         AnonymousSimpleStatsManager.shared.logScreen(pageId: "4e23d119-b282-4170-a820-928cd097bf36")
+        print("Coucou")
     }
 }
