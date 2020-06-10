@@ -13,10 +13,12 @@ struct PageView {
     var sessionId: UUID
     var timestamp: TimeInterval
 
+    /// Turns object in json.
+    /// Note: Send timestamp as delta time between hit and WS call
     var asJson: [String: Any] {
         return ["page": page.uuidString,
                 "sessionId": sessionId.uuidString,
-                "timestamp": "\(UInt64(timestamp * 1000))"]
+                "timestamp": "\(UInt64(Date().timeIntervalSince1970 - timestamp))"]
     }
 }
 
