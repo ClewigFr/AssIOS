@@ -13,6 +13,7 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Log screen example with dedicated page id.
         AnonymousSimpleStatsManager.shared.logScreen(pageId: "4e23d119-b282-4170-a820-928cd097bf36")
     }
 }
