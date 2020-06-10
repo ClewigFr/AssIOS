@@ -26,7 +26,7 @@ public class AnonymousSimpleStatsManager {
     private init() {
         self.verbose = false
         self.sessionID = UUID()
-        self.url = URL(string: "https://gentle-inlet-02091.herokuapp.com/pages")!
+        self.url = URL(string: "https://gentle-inlet-02091.herokuapp.com/views")!
     }
 
     // MARK: - Public Funcs
@@ -52,7 +52,7 @@ public class AnonymousSimpleStatsManager {
         }
         let pageView = PageView(page: page,
                                 sessionId: sessionID,
-                                timestamp: Date().timeIntervalSince1970)
+                                timestamp: 0)
         let pageViews = PageViews(pageViews: [pageView])
         self.sendPages(pageViews)
     }

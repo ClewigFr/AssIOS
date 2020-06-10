@@ -14,6 +14,7 @@ class ViewController: UIViewController {
         super.viewDidLoad()
 
         // Log screen example with dedicated page id.
-        AnonymousSimpleStatsManager.shared.logScreen(pageId: "4e23d119-b282-4170-a820-928cd097bf36")
+        // Page : iOS lib demo, id: 9a9e65d6-8c01-48e3-a487-2b6d1fd2967d
+        AnonymousSimpleStatsManager.shared.logScreen(pageId: "9a9e65d6-8c01-48e3-a487-2b6d1fd2967d")
     }
 }
