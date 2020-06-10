@@ -16,7 +16,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
 
-        AnonymousSimpleStatsManager.shared.setup()
+        AnonymousSimpleStatsManager.shared.setup(verbose: true)
 
         return true
     }

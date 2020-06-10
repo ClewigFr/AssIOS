@@ -6,7 +6,7 @@
 //  Copyright © 2020 Clewig. All rights reserved.
 //
 
-import Foundation
+import UIKit
 
 public typealias AnonymousManager = AnonymousSimpleStatsManager
 
@@ -15,27 +15,41 @@ public typealias AnonymousManager = AnonymousSimpleStatsManager
 public class AnonymousSimpleStatsManager {
 
     // MARK: - Public Properties
-    public static var shared = AnonymousSimpleStatsManager()
+    public static var shared = AnonymousManager()
 
     // MARK: - Private Properties
     private let sessionID: UUID
     private let url: URL
     private var verbose: Bool
+    private var pagesStack: PageViews
+
+    // MARK: - Private Enums
+    private enum Constants {
+        static let minPageStachBeforeSend: Int = 2
+        // TODO: Move this string elsewhere
+        static let backEndUrl: String = "https://gentle-inlet-02091.herokuapp.com/views"
+    }
 
     // MARK: - Init
     private init() {
         self.verbose = false
         self.sessionID = UUID()
-        self.url = URL(string: "https://gentle-inlet-02091.herokuapp.com/views")!
+        self.pagesStack = PageViews(pages: [])
+        self.url = URL(string: Constants.backEndUrl)!
+
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(applicationWillResignActive),
+                                               name: UIApplication.willResignActiveNotification,
+                                               object: nil)
     }
 
     // MARK: - Public Funcs
 
     /// Setup manager.
-    public func setup(verbose: Bool = true) {
+    public func setup(verbose: Bool = false) {
         self.verbose = verbose
         if verbose {
-            print("AnonymousSimpleStatsManager: setup")
+            print("AnonymousSimpleStats: setup")
         }
     }
 
@@ -47,24 +61,52 @@ public class AnonymousSimpleStatsManager {
         guard let page = UUID(uuidString: pageId)
             else { return }
 
-        if verbose {
-            print("AnonymousSimpleStatsManager: log screen")
-        }
         let pageView = PageView(page: page,
-                                sessionId: sessionID,
-                                timestamp: 0)
-        let pageViews = PageViews(pageViews: [pageView])
-        self.sendPages(pageViews)
+                                sessionId: sessionID)
+        if verbose {
+            print("AnonymousSimpleStats: log screen \(pageView.pageName ?? "")")
+        }
+        self.stackPage(pageView)
+    }
+}
+
+// MARK: - Event Handling Funcs
+private extension AnonymousManager {
+    /// Send stacked pages when user leave app.
+    @objc func applicationWillResignActive() {
+        if self.pagesStack.hasContent {
+            self.sendPages(pagesStack)
+        }
     }
 }
 
 // MARK: - Private Funcs
-private extension AnonymousSimpleStatsManager {
-    /// Send pages.
+private extension AnonymousManager {
+    /// Return true if page(s) can be sent.
+    /// Defines batch send rules
+    func shouldSendStack() -> Bool {
+        return self.pagesStack.pages.count >= Constants.minPageStachBeforeSend
+    }
+
+    /// Stack page before sending.
     ///
     /// - Parameters:
-    ///     - pageViews: PageViews
+    ///     - pageView: PageView to stack
+    func stackPage(_ pageView: PageView) {
+        self.pagesStack.pages.append(pageView)
+        if self.shouldSendStack() {
+            self.sendPages(pagesStack)
+        }
+    }
+
+    /// Send pages to back end.
+    ///
+    /// - Parameters:
+    ///     - pageViews: PageViews to send
     func sendPages(_ pageViews: PageViews) {
+        if verbose {
+            print("AnonymousSimpleStats: send \(pageViews.pages.count) page(s)")
+        }
         let session = URLSession.shared
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -91,16 +133,24 @@ private extension AnonymousSimpleStatsManager {
                                         guard error == nil,
                                             let httpResponse = response as? HTTPURLResponse
                                             else {
-                                                print(error?.localizedDescription ?? "error")
+                                                if self?.verbose == true {
+                                                    print(error?.localizedDescription ?? "error")
+                                                }
                                                 return
                                         }
+                                        let message: String
                                         switch httpResponse.statusCode {
                                         case 200:
-                                            print("OK")
+                                            message = "OK"
+                                            self?.pagesStack.pages.removeAll()
                                         case 206:
-                                            print("Partial OK")
+                                            message = "Partial OK. Page id(s) should be checked"
+                                            self?.pagesStack.pages.removeAll()
                                         default:
-                                            print("error \(httpResponse.statusCode)")
+                                            message = "error \(httpResponse.statusCode)"
+                                        }
+                                        if self?.verbose == true {
+                                            print(message)
                                         }
         })
         task.resume()
