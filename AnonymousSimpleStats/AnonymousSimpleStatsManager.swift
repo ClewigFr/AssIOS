@@ -18,6 +18,7 @@ public class AnonymousSimpleStatsManager {
     public static var shared = AnonymousManager()
 
     // MARK: - Private Properties
+    private var isSendingData: Bool
     private let sessionID: UUID
     private let url: URL
     private var verbose: Bool
@@ -25,14 +26,15 @@ public class AnonymousSimpleStatsManager {
 
     // MARK: - Private Enums
     private enum Constants {
-        static let minPageStacKBeforeSend: Int = 2
-        static let minHitDeltaTimeBeforeSend: TimeInterval = 4.0
+        static let minPageStacKBeforeSend: Int = 5
+        static let minHitDeltaTimeBeforeSend: TimeInterval = 60.0
         // TODO: Move this string elsewhere
         static let backEndUrl: String = "https://gentle-inlet-02091.herokuapp.com/views"
     }
 
     // MARK: - Init
     private init() {
+        self.isSendingData = false
         self.verbose = false
         self.sessionID = UUID()
         self.pagesStack = PageViews(pages: [])
@@ -49,6 +51,7 @@ public class AnonymousSimpleStatsManager {
     /// Setup manager.
     public func setup(verbose: Bool = false) {
         self.verbose = verbose
+        self.restorePersistedPages()
         if verbose {
             print("AnonymousSimpleStats: setup")
         }
@@ -67,7 +70,7 @@ public class AnonymousSimpleStatsManager {
         if verbose {
             print("AnonymousSimpleStats: log page \(pageView.pageName ?? "")")
         }
-        self.stackPage(pageView)
+        self.stackPages([pageView])
     }
 }
 
@@ -87,15 +90,17 @@ private extension AnonymousManager {
     /// Defines batch send rules
     func shouldSendStack() -> Bool {
         return self.pagesStack.pages.count >= Constants.minPageStacKBeforeSend
-            && self.pagesStack.stackDeltaTime > Constants.minHitDeltaTimeBeforeSend
+            || self.pagesStack.stackDeltaTime > Constants.minHitDeltaTimeBeforeSend
     }
 
     /// Stack page before sending.
     ///
     /// - Parameters:
     ///     - pageView: PageView to stack
-    func stackPage(_ pageView: PageView) {
-        self.pagesStack.appendPage(pageView)
+    func stackPages(_ pages: [PageView]) {
+        pages.forEach { page in
+            self.pagesStack.appendPage(page)
+        }
         if self.shouldSendStack() {
             self.sendPages(pagesStack)
         }
@@ -106,7 +111,9 @@ private extension AnonymousManager {
     /// - Parameters:
     ///     - pageViews: PageViews to send
     func sendPages(_ pageViews: PageViews) {
-        // TODO: check network?
+        guard !isSendingData
+            else { return }
+
         if verbose {
             print("AnonymousSimpleStats: send \(pageViews.pages.count) page(s)")
         }
@@ -116,7 +123,7 @@ private extension AnonymousManager {
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("application/json", forHTTPHeaderField: "Accept")
         do {
-            let data = try JSONSerialization.data(withJSONObject: pageViews.asJson,
+            let data = try JSONSerialization.data(withJSONObject: pageViews.jsonExport,
                                                   options: .prettyPrinted)
             request.httpBody = data
             if verbose {
@@ -127,12 +134,10 @@ private extension AnonymousManager {
                 print(error.localizedDescription)
             }
         }
-
+        self.isSendingData = true
         let task = session.dataTask(with: request as URLRequest,
                                     completionHandler: { [weak self] _, response, error in
-                                        guard self?.verbose == true
-                                            else { return }
-
+                                        self?.isSendingData = false
                                         guard error == nil,
                                             let httpResponse = response as? HTTPURLResponse
                                             else {
@@ -160,10 +165,46 @@ private extension AnonymousManager {
             self.pagesStack.reset()
         default:
             message = "Error: \(code)"
-            // save + retry later
+            self.persistPages()
         }
         if self.verbose == true {
             print(message)
         }
+    }
+}
+
+// MARK: - Backup management
+private extension AnonymousManager {
+    /// Save stacked pages if server call failed to retry later.
+    func persistPages() {
+        let data = self.pagesStack.toJsonData()
+        try? data?.write(to: backupDirectory())
+        // save page
+        if self.verbose {
+            print("\(self.pagesStack.pages.count) page(s) backuped")
+        }
+    }
+
+    /// Clean backup data.
+    func cleanPersistedBackup() {
+        try? FileManager.default.removeItem(at: backupDirectory())
+    }
+
+    /// Restore saved stacked pages to retry to send then to the server side.
+    func restorePersistedPages() {
+        // retreive data
+        let data: Data? = try? Data.init(contentsOf: backupDirectory())
+        if let pages = PageViews.pageViews(with: data) {
+            self.stackPages(pages.pages)
+            self.cleanPersistedBackup()
+            if self.verbose {
+                print("\(pages.pages.count) page(s) restored")
+            }
+        }
+    }
+
+    func backupDirectory() -> URL {
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        return paths[0].appendingPathComponent(".anonymousSimpleStatsBackup.data")
     }
 }
