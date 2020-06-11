@@ -25,7 +25,8 @@ public class AnonymousSimpleStatsManager {
 
     // MARK: - Private Enums
     private enum Constants {
-        static let minPageStachBeforeSend: Int = 2
+        static let minPageStacKBeforeSend: Int = 2
+        static let minHitDeltaTimeBeforeSend: TimeInterval = 4.0
         // TODO: Move this string elsewhere
         static let backEndUrl: String = "https://gentle-inlet-02091.herokuapp.com/views"
     }
@@ -64,7 +65,7 @@ public class AnonymousSimpleStatsManager {
         let pageView = PageView(page: page,
                                 sessionId: sessionID)
         if verbose {
-            print("AnonymousSimpleStats: log screen \(pageView.pageName ?? "")")
+            print("AnonymousSimpleStats: log page \(pageView.pageName ?? "")")
         }
         self.stackPage(pageView)
     }
@@ -85,7 +86,8 @@ private extension AnonymousManager {
     /// Return true if page(s) can be sent.
     /// Defines batch send rules
     func shouldSendStack() -> Bool {
-        return self.pagesStack.pages.count >= Constants.minPageStachBeforeSend
+        return self.pagesStack.pages.count >= Constants.minPageStacKBeforeSend
+            && self.pagesStack.stackDeltaTime > Constants.minHitDeltaTimeBeforeSend
     }
 
     /// Stack page before sending.
@@ -93,7 +95,7 @@ private extension AnonymousManager {
     /// - Parameters:
     ///     - pageView: PageView to stack
     func stackPage(_ pageView: PageView) {
-        self.pagesStack.pages.append(pageView)
+        self.pagesStack.appendPage(pageView)
         if self.shouldSendStack() {
             self.sendPages(pagesStack)
         }
@@ -104,6 +106,7 @@ private extension AnonymousManager {
     /// - Parameters:
     ///     - pageViews: PageViews to send
     func sendPages(_ pageViews: PageViews) {
+        // TODO: check network?
         if verbose {
             print("AnonymousSimpleStats: send \(pageViews.pages.count) page(s)")
         }
@@ -117,7 +120,7 @@ private extension AnonymousManager {
                                                   options: .prettyPrinted)
             request.httpBody = data
             if verbose {
-                print(String(bytes: data, encoding: .utf8) ?? "no json")
+                print(String(bytes: data, encoding: .utf8) ?? "Error: No Json")
             }
         } catch let error {
             if verbose {
@@ -138,21 +141,29 @@ private extension AnonymousManager {
                                                 }
                                                 return
                                         }
-                                        let message: String
-                                        switch httpResponse.statusCode {
-                                        case 200:
-                                            message = "OK"
-                                            self?.pagesStack.pages.removeAll()
-                                        case 206:
-                                            message = "Partial OK. Page id(s) should be checked"
-                                            self?.pagesStack.pages.removeAll()
-                                        default:
-                                            message = "error \(httpResponse.statusCode)"
-                                        }
-                                        if self?.verbose == true {
-                                            print(message)
-                                        }
+                                        self?.handleResponseCode(httpResponse.statusCode)
         })
         task.resume()
+    }
+
+    func handleResponseCode(_ code: Int) {
+        let message: String
+        switch code {
+        case 200:
+            message = "Ok"
+            self.pagesStack.reset()
+        case 206:
+            message = "Partially OK. Page id(s) should be checked."
+            self.pagesStack.reset()
+        case 400:
+            message = "Back end JSON error: \(code)"
+            self.pagesStack.reset()
+        default:
+            message = "Error: \(code)"
+            // save + retry later
+        }
+        if self.verbose == true {
+            print(message)
+        }
     }
 }

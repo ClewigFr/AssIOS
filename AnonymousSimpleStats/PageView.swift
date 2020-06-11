@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct PageView {
+struct PageView: Equatable {
     var page: UUID
     var sessionId: UUID
     var timestamp: TimeInterval
@@ -23,17 +23,22 @@ struct PageView {
         self.pageName = pageName
     }
 
+    static func == (lhs: PageView, rhs: PageView) -> Bool {
+        return lhs.page == rhs.page
+            && (rhs.timestamp - lhs.timestamp < 0.5 ) // same 1/2 second
+    }
+
     /// Turns object in json.
     /// Note: Send timestamp as delta time between hit and WS call
     var asJson: [String: Any] {
         return ["page": page.uuidString,
                 "sessionId": sessionId.uuidString,
-                "timestamp": "\(UInt64(Date().timeIntervalSince1970 - timestamp))"]
+                "timestamp": "\(UInt64(Date().timeIntervalSince1970 - timestamp) * 1000)"] // in milliseconds
     }
 }
 
 struct PageViews {
-    var pages: [PageView]
+    private(set) var pages: [PageView]
 
     var asJson: [String: Any] {
         let views = pages.map({ $0.asJson })
@@ -42,5 +47,22 @@ struct PageViews {
 
     var hasContent: Bool {
         return pages.isEmpty == false
+    }
+
+    var stackDeltaTime: TimeInterval {
+        return (self.pages.last?.timestamp ?? 0.0) - (self.pages.first?.timestamp ?? 0.0)
+    }
+
+    mutating func appendPage(_ page: PageView) {
+        // Check if event already exists befaore append (user bug, call in a loop, etc.)
+        if pages.contains(where: { $0 == page }) == false {
+            pages.append(page)
+        } else {
+            print("AnonymousSimpleStats: warning, skip duplicate page \(page.page) \(page.pageName ?? "")")
+        }
+    }
+
+    mutating func reset() {
+        pages.removeAll()
     }
 }

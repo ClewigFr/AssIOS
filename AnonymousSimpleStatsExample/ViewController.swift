@@ -13,6 +13,18 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        self.logScreen()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: {
+            self.logScreen()
+        })
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0, execute: {
+            self.logScreen()
+        })
+    }
+
+    func logScreen() {
         // Log screen example with dedicated page id.
         // Page : iOS lib demo, id: 9a9e65d6-8c01-48e3-a487-2b6d1fd2967d
         AnonymousSimpleStatsManager.shared.logScreen(pageId: "9a9e65d6-8c01-48e3-a487-2b6d1fd2967d")
