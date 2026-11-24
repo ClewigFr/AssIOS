@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- From the build settings ASS_ENDPOINT, ASS_APP_ID and ASS_PAGES (comma-separated page UUIDs) -->
+	<key>AssEndpoint</key>
+	<string>$(ASS_ENDPOINT)</string>
+	<key>AssAppId</key>
+	<string>$(ASS_APP_ID)</string>
+	<key>AssPages</key>
+	<string>$(ASS_PAGES)</string>
+	<!-- The demo talks to a backend on the Mac (the simulator shares its network) over plain http -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+</dict>
+</plist>
