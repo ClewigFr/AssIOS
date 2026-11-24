@@ -15,6 +15,8 @@ Simple Stats collects no user identifiers, no device IDs and no personal data. E
 | `sessionId` | A random UUID generated on every app launch, never persisted |
 | `timestamp` | How many milliseconds ago the view happened, at send time    |
 
+What is kept on the device and on the server, and what to declare in App Store Connect: [confidentiality-policy.md](confidentiality-policy.md).
+
 ## Installation
 
 Swift Package Manager, iOS 15+, tvOS 15+, visionOS 1+ (macOS 12+ also builds). No dependency.
